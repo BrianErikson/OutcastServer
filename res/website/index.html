@@ -1,10 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="OutcastApp">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Outcast</title>
+
+    <!-- Include -->
+    <link rel="stylesheet" href="libs/bootstrap-3.3.6/css/bootstrap.css">
+    <link rel="stylesheet" href="libs/bootstrap-3.3.6/css/bootstrap-theme.css">
+    <script type="text/javascript" src="libs/jquery-1.12.3.js"></script>
+    <script type="text/javascript" src="libs/bootstrap-3.3.6/js/bootstrap.js"></script>
+    <script type="text/javascript" src="libs/angular-1.5.3/angular.js"></script>
+    <script type="text/javascript" src="app.js"></script>
 </head>
 <body>
-
+    <div class="container" ng-controller="MasterCtrl">
+        <button type="button" data-ng-click="addNewFeed()">Add New RSS Feed</button>
+        <div id="newFeedDiv" style="display: none" ng-controller="NewFeedCtrl">
+            <p>Test</p>
+        </div>
+        <div ng-controller="RssFeedCtrl">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Podcast Title</th>
+                        <th>RSS Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="feed in feeds">
+                        <td>{{$index}}</td>
+                        <td>{{feed.title}}</td>
+                        <td>{{feed.location}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 </html>
