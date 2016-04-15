@@ -32,10 +32,12 @@ sourceSets {
     main {
         java.srcDirs = []
         kotlin.srcDir 'src/main/core'
+        resources.srcDir 'res'
     }
 
     test {
         kotlin.srcDir 'src/test/core'
+        resources.srcDir 'res'
     }
 }
 
