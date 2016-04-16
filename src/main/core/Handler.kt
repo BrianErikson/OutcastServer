@@ -2,8 +2,10 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import java.io.File
 import java.io.FileInputStream
+import java.io.OutputStream
 import java.net.URI
 import java.net.URL
+import java.nio.file.Files
 
 class Handler: HttpHandler {
     val webRoot = "website";
@@ -22,6 +24,7 @@ class Handler: HttpHandler {
     }
 
     private fun parseGET(exchange: HttpExchange) {
+        println("---------------------------------");
         println("GET ${exchange.requestURI.path} received: ")
         val out = exchange.responseBody;
         if (exchange.requestURI.path.equals("/")) {
@@ -30,6 +33,15 @@ class Handler: HttpHandler {
             exchange.responseHeaders.set("Location", "http://$hostPath/index.html");
             exchange.sendResponseHeaders(301, 0.toLong());
             out.write("".toByteArray());
+            out.close();
+        }
+        else if (exchange.requestURI.path.equals("/feeds")) {
+            
+
+            println("File not found.");
+            val response = "404 (Not Found)\n";
+            exchange.sendResponseHeaders(404, response.length.toLong());
+            out.write(response.toByteArray());
             out.close();
         }
         else {
@@ -44,10 +56,12 @@ class Handler: HttpHandler {
             }
 
             if (file?.exists() ?: false) {
-                println("Found file. Sending.");
-                exchange.responseHeaders.set("Content-Type", "text/html");
+                val mimeType: String = Files.probeContentType(file!!.toPath()) ?: getFileType(file.path);
+
+                println("Found file. Sending. File type: $mimeType");
+                exchange.responseHeaders.set("Content-Type", mimeType);
                 exchange.sendResponseHeaders(200, 0.toLong());
-                val fs = file!!.inputStream();
+                val fs = file.inputStream();
                 val buffer = ByteArray(0x10000);
 
                 var count = fs.read(buffer);
@@ -65,6 +79,18 @@ class Handler: HttpHandler {
                 out.write(response.toByteArray());
                 out.close();
             }
+        }
+    }
+
+    private fun getFileType(path: String): String {
+        val split = path.split(".");
+        val extension = split[split.size - 1];
+
+        when (extension) {
+            "js" -> return "text/javascript";
+            "html" -> return "text/html";
+            "css" -> return "text/css";
+            else -> return "application/octet-stream";
         }
     }
 }
