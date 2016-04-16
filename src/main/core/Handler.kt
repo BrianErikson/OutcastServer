@@ -1,13 +1,18 @@
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
-import java.io.File
-import java.io.FileInputStream
-import java.io.OutputStream
+import java.io.*
 import java.net.URI
 import java.net.URL
 import java.nio.file.Files
+import java.sql.Connection
+import java.sql.DriverManager
 
-class Handler: HttpHandler {
+data class Feed(val title: String, val location: String);
+
+class Handler(val dbConnection: Connection): HttpHandler {
     val webRoot = "website";
 
     override fun handle(exchange: HttpExchange?) {
@@ -36,13 +41,13 @@ class Handler: HttpHandler {
             out.close();
         }
         else if (exchange.requestURI.path.equals("/feeds")) {
-            
+            val json = getFeeds();
+            exchange.responseHeaders.set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, 0.toLong());
 
-            println("File not found.");
-            val response = "404 (Not Found)\n";
-            exchange.sendResponseHeaders(404, response.length.toLong());
-            out.write(response.toByteArray());
-            out.close();
+            val writer = OutputStreamWriter(out, Charsets.UTF_8);
+            writer.write(json, 0, json.length);
+            writer.close(); // closes out stream as well
         }
         else {
             val requestPath = webRoot + exchange.requestURI.path;
@@ -80,6 +85,26 @@ class Handler: HttpHandler {
                 out.close();
             }
         }
+    }
+
+    private fun getFeeds(): String {
+        val feeds = mutableListOf<Feed>();
+
+        val dbResult = dbConnection.createStatement().executeQuery("SELECT title, location FROM Feeds");
+        while (dbResult.next()) {
+            val title: String? = dbResult.getString("title");
+            val location: String? = dbResult.getString("location");
+            if (title != null && location != null) {
+                feeds.add(Feed(title, location));
+            }
+            else {
+                println("ERROR accessing feed row ${dbResult.row}: title=$title, location=$location");
+            }
+        }
+
+        val json = Gson().toJson(feeds);
+        println(json);
+        return json;
     }
 
     private fun getFileType(path: String): String {
