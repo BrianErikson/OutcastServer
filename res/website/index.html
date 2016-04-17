@@ -32,7 +32,7 @@
                 <div class="form-group" ng-class="{'has-danger': form.location.$invalid && form.location.$dirty,
                                                    'has-success': form.location.$valid && form.location.$dirty}">
                     <label class="form-control-label" for="locationInput">Location</label>
-                    <input class="form-control" type="url"
+                    <input url class="form-control" type="url"
                            ng-class="{'form-control-danger': form.location.$invalid && form.location.$dirty,
                                       'form-control-success': form.location.$valid && form.location.$dirty}"
                            ng-required="true"
