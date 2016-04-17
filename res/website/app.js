@@ -20,24 +20,30 @@ outcastApp.controller('MasterCtrl', function ($scope) {
     };
 });
 
-outcastApp.controller('NewFeedCtrl', function ($scope) {
+outcastApp.controller('NewFeedCtrl', function ($rootScope, $scope, $http, $timeout) {
     $scope.feed = {title: '', location: ''};
     $scope.submitNewFeed = function() {
         if ($scope.feed.title && $scope.feed.location) {
-
-        }
-        else {
-
+            $http.get("/feeds/add/title=" + $scope.feed.title + "+location=" + $scope.feed.location);
+            $timeout(function(){$rootScope.$emit("UpdateFeeds", {})}, 3000);
         }
     }
 });
 
-outcastApp.controller('RssFeedCtrl', function ($scope, $http) {
-    $scope.feeds = [{title: "", location: ""}];
-    $http.get("/feeds").then(function successCallback(response) {
-        $scope.feeds = response.data;
-    }, function errorCallback(response) {
-        // called asynchronously if an error occurs
-        // or server returns response with an error status.
+outcastApp.controller('RssFeedCtrl', function ($rootScope, $scope, $http) {
+    $rootScope.$on("UpdateFeeds", function() {
+        getFeeds();
     });
+    $scope.feeds = [{title: "", location: ""}];
+
+    function getFeeds() {
+        $http.get("/feeds").then(function successCallback(response) {
+            $scope.feeds = response.data;
+        }, function errorCallback(response) {
+            // called asynchronously if an error occurs
+            // or server returns response with an error status.
+        });
+    }
+
+    getFeeds();
 });

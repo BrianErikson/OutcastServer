@@ -44,14 +44,8 @@ class Handler(val dbConnection: Connection): HttpHandler {
             out.write("".toByteArray());
             out.close();
         }
-        else if (exchange.requestURI.path.equals("/feeds")) {
-            val json = getFeeds();
-            exchange.responseHeaders.set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, 0.toLong());
-
-            val writer = OutputStreamWriter(out, Charsets.UTF_8);
-            writer.write(json, 0, json.length);
-            writer.close(); // closes out stream as well
+        else if (exchange.requestURI.path.contains("/feeds")) {
+            feedsGET(exchange, out);
         }
         else {
             val requestPath = webRoot + exchange.requestURI.path;
@@ -91,7 +85,30 @@ class Handler(val dbConnection: Connection): HttpHandler {
         }
     }
 
-    private fun getFeeds(): String {
+    private fun feedsGET(exchange: HttpExchange, out: OutputStream) {
+        val uriPath = exchange.requestURI.path;
+        if (uriPath.contains("/add/")) { // /feeds/add/title=Title+location=http://google.com
+            val query = uriPath.substringAfter("/add/"); // title=Title+location=http://google.com
+            val split = query.split("+location="); // title=Title, http://google.com
+            val newFeed = Feed(split[0].substringAfter("title="), split[1]);
+            // TODO: perform validation on the title and location before adding to database
+            // TODO: Prevent duplicates if already in db
+            val result = dbConnection.createStatement()
+                    .executeUpdate("INSERT INTO Feeds VALUES('${newFeed.title}', '${newFeed.location}')"); // 1 = OK
+            println("Added Podcast $newFeed to the database with result code $result");
+        }
+        else {
+            val json = getDbFeeds();
+            exchange.responseHeaders.set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, 0.toLong());
+
+            val writer = OutputStreamWriter(out, Charsets.UTF_8);
+            writer.write(json, 0, json.length);
+            writer.close(); // closes out stream as well
+        }
+    }
+
+    private fun getDbFeeds(): String {
         val feeds = mutableListOf<Feed>();
 
         val dbResult = dbConnection.createStatement().executeQuery("SELECT title, location FROM Feeds");
