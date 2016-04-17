@@ -1,17 +1,21 @@
-function parseFeeds(httpResponse) {
-    return [{title: "Test", location: "google.com"}];
-}
-
 var outcastApp = angular.module('OutcastApp', []);
 
 outcastApp.controller('MasterCtrl', function ($scope) {
-    $scope.addNewFeed = function() {
+    $scope.toggleNewFeed = function() {
         $("#newFeedDiv").toggle(true);
     };
 });
 
 outcastApp.controller('NewFeedCtrl', function ($scope) {
-    
+    $scope.feed = {title: '', location: ''};
+    $scope.submitNewFeed = function() {
+        if ($scope.feed.title && $scope.feed.location) {
+            
+        }
+        else {
+
+        }
+    }
 });
 
 outcastApp.controller('RssFeedCtrl', function ($scope, $http) {

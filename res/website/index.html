@@ -8,7 +8,6 @@
 
     <!-- Include -->
     <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
-    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap-theme.css">
     <script type="text/javascript" src="bower_components/jquery/dist/jquery.js"></script>
     <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <script type="text/javascript" src="bower_components/angular/angular.js"></script>
@@ -16,12 +15,35 @@
 </head>
 <body>
     <div class="container" ng-controller="MasterCtrl">
-        <button type="button" data-ng-click="addNewFeed()">Add New RSS Feed</button>
+        <button class="btn btn-primary" type="button" data-ng-click="toggleNewFeed()">New Feed</button>
+
         <div id="newFeedDiv" style="display: none" ng-controller="NewFeedCtrl">
-            <p>Test</p>
+            <form novalidate class="form-inline" ng-submit="submitNewFeed()" name="form" id="newFeedForm">
+                <div class="form-group" ng-class="{'has-danger': form.title.$invalid && form.title.$dirty,
+                                                   'has-success': form.title.$valid && form.title.$dirty}">
+                    <label class="form-control-label" for="titleInput">Title</label>
+                    <input class="form-control" type="text"
+                           ng-class="{'form-control-danger': form.title.$invalid && form.title.$dirty,
+                                      'form-control-success': form.title.$valid && form.title.$dirty}"
+                           ng-required="true"
+                           ng-model="feed.title" ng-model-options="{debounce: 300}" ng-minlength="4" ng-maxlength="30"
+                           name="title" id="titleInput">
+                </div>
+                <div class="form-group" ng-class="{'has-danger': form.location.$invalid && form.location.$dirty,
+                                                   'has-success': form.location.$valid && form.location.$dirty}">
+                    <label class="form-control-label" for="locationInput">Location</label>
+                    <input class="form-control" type="url"
+                           ng-class="{'form-control-danger': form.location.$invalid && form.location.$dirty,
+                                      'form-control-success': form.location.$valid && form.location.$dirty}"
+                           ng-required="true"
+                           ng-model="feed.location" ng-model-options="{debounce: 300}" name="location" id="locationInput">
+                </div>
+                <button type="submit" class="btn" ng-disabled="form.$invalid"
+                        ng-class="{'btn-primary': form.$valid, 'btn-secondary': form.$invalid}">Add</button>
+            </form>
         </div>
         <div ng-controller="RssFeedCtrl">
-            <table class="table table-hover">
+            <table class="table table-inverse">
                 <thead>
                     <tr>
                         <th>#</th>

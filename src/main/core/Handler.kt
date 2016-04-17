@@ -1,6 +1,4 @@
 import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import java.io.*
@@ -8,7 +6,6 @@ import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.sql.Connection
-import java.sql.DriverManager
 
 data class Feed(val title: String, val location: String);
 
@@ -17,6 +14,7 @@ class Handler(val dbConnection: Connection): HttpHandler {
 
     override fun handle(exchange: HttpExchange?) {
         if (exchange != null) {
+            println("---------------------------------");
             when (exchange.requestMethod) {
                 "GET" -> parseGET(exchange);
                 "POST" -> parsePOST(exchange);
@@ -25,11 +23,17 @@ class Handler(val dbConnection: Connection): HttpHandler {
     }
 
     private fun parsePOST(exchange: HttpExchange) {
+        val out = exchange.responseBody;
 
+        println("POST ${exchange.requestURI.path} received: ");
+
+        val response = "404 (Not implemented)\n";
+        exchange.sendResponseHeaders(404, response.length.toLong());
+        out.write(response.toByteArray());
+        out.close();
     }
 
     private fun parseGET(exchange: HttpExchange) {
-        println("---------------------------------");
         println("GET ${exchange.requestURI.path} received: ")
         val out = exchange.responseBody;
         if (exchange.requestURI.path.equals("/")) {
