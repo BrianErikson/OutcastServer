@@ -25,6 +25,8 @@ class OutcastServer {
         );
 
         if (connection != null) {
+            connection.createStatement().execute("CREATE TABLE Feeds (title text, url text, " +
+                    "creationDate timestamp DEFAULT(now()), updatedDate timestamp DEFAULT(now())");
             server = HttpServer.create(InetSocketAddress(80), 0);
             server.createContext("/", Handler(connection));
             server.executor = null;
