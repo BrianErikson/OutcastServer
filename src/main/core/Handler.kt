@@ -98,10 +98,11 @@ class Handler(val dbConnection: Connection): HttpHandler {
                 val rss = SyndFeedInput().build(XmlReader(URL(url))) as SyndFeedImpl;
                 val title: String = rss.title ?: throw RuntimeException("Could not find title for feed $url");
 
-                var result = dbConnection.createStatement().executeUpdate("UPDATE Feeds SET url='$url', updateddate=now() WHERE title='$title'");
+
+                var result = dbConnection.createStatement().executeUpdate("UPDATE Feeds SET url='${escapeSqlString(url)}', updateddate=now() WHERE title='${escapeSqlString(title)}'");
                 if (result <= 0) {
                     result = dbConnection.createStatement()
-                            .executeUpdate("INSERT INTO Feeds VALUES('$title', '$url')"); // 1 = OK
+                            .executeUpdate("INSERT INTO Feeds VALUES('${escapeSqlString(title)}', '${escapeSqlString(url)}')"); // 1 = OK
                 }
 
                 if (result <= 0) throw RuntimeException("Could not add $url to the database. Reason unknown.");
@@ -128,6 +129,10 @@ class Handler(val dbConnection: Connection): HttpHandler {
             writer.write(json, 0, json.length);
             writer.close(); // closes out stream as well
         }
+    }
+
+    private fun escapeSqlString(str: String): String {
+        return str.replace("'", "''");
     }
 
     private fun getDbFeeds(): String {
