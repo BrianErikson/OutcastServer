@@ -1,13 +1,16 @@
 import com.google.gson.Gson
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
+import com.sun.syndication.feed.synd.SyndFeedImpl
+import com.sun.syndication.io.SyndFeedInput
+import com.sun.syndication.io.XmlReader
 import java.io.*
 import java.net.URI
 import java.net.URL
 import java.nio.file.Files
 import java.sql.Connection
 
-data class Feed(val title: String, val location: String);
+data class Feed(val title: String, val url: String, val date: String);
 
 class Handler(val dbConnection: Connection): HttpHandler {
     val webRoot = "website";
@@ -34,9 +37,10 @@ class Handler(val dbConnection: Connection): HttpHandler {
     }
 
     private fun parseGET(exchange: HttpExchange) {
-        println("GET ${exchange.requestURI.path} received: ")
+        val path = if(exchange.requestURI.query != null) exchange.requestURI.path + "?" + exchange.requestURI.query else exchange.requestURI.path;
+        println("GET $path received: ")
         val out = exchange.responseBody;
-        if (exchange.requestURI.path.equals("/")) {
+        if (path.equals("/")) {
             println("Redirecting.");
             val hostPath = exchange.requestHeaders.getFirst("Host");
             exchange.responseHeaders.set("Location", "http://$hostPath/index.html");
@@ -44,11 +48,11 @@ class Handler(val dbConnection: Connection): HttpHandler {
             out.write("".toByteArray());
             out.close();
         }
-        else if (exchange.requestURI.path.contains("/feeds")) {
+        else if (path.contains("/feeds")) {
             feedsGET(exchange, out);
         }
         else {
-            val requestPath = webRoot + exchange.requestURI.path;
+            val requestPath = webRoot + path;
             println("Attemping to find file at $requestPath");
             val resource: URL? = javaClass.classLoader.getResource(requestPath);
             val fileUri: URI? = resource?.toURI() ?: null;
@@ -86,16 +90,34 @@ class Handler(val dbConnection: Connection): HttpHandler {
     }
 
     private fun feedsGET(exchange: HttpExchange, out: OutputStream) {
-        val uriPath = exchange.requestURI.path;
-        if (uriPath.contains("/add/")) { // /feeds/add/title=Title+location=http://google.com
-            val query = uriPath.substringAfter("/add/"); // title=Title+location=http://google.com
-            val split = query.split("+location="); // title=Title, http://google.com
-            val newFeed = Feed(split[0].substringAfter("title="), split[1]);
-            // TODO: perform validation on the title and location before adding to database
-            // TODO: Prevent duplicates if already in db
-            val result = dbConnection.createStatement()
-                    .executeUpdate("INSERT INTO Feeds VALUES('${newFeed.title}', '${newFeed.location}')"); // 1 = OK
-            println("Added Podcast $newFeed to the database with result code $result");
+        val path = if(exchange.requestURI.query != null) exchange.requestURI.path + "?" + exchange.requestURI.query else exchange.requestURI.path;
+        if (path.contains("/add/")) { // /feeds/add/location=http://google.com
+            val url = path.substringAfter("/add/location="); // http://google.com
+
+            try {
+                val rss = SyndFeedInput().build(XmlReader(URL(url))) as SyndFeedImpl;
+                val title: String = rss.title ?: throw RuntimeException("Could not find title for feed $url");
+
+                var result = dbConnection.createStatement().executeUpdate("UPDATE Feeds SET url='$url', updateddate=now() WHERE title='$title'");
+                if (result <= 0) {
+                    result = dbConnection.createStatement()
+                            .executeUpdate("INSERT INTO Feeds VALUES('$title', '$url')"); // 1 = OK
+                }
+
+                if (result <= 0) throw RuntimeException("Could not add $url to the database. Reason unknown.");
+
+                println("Submitted Podcast $title (url=$url) to the database with result code $result");
+
+                exchange.sendResponseHeaders(200, 0.toLong());
+                out.close();
+            }
+            catch (e: Exception) {
+                println("ERROR: Could not add feed $url to the database: ${e.message}");
+                val response = "ERROR 400: ${e.message}\n";
+                exchange.sendResponseHeaders(400, response.length.toLong());
+                out.write(response.toByteArray());
+                out.close();
+            }
         }
         else {
             val json = getDbFeeds();
@@ -111,15 +133,16 @@ class Handler(val dbConnection: Connection): HttpHandler {
     private fun getDbFeeds(): String {
         val feeds = mutableListOf<Feed>();
 
-        val dbResult = dbConnection.createStatement().executeQuery("SELECT title, location FROM Feeds");
+        val dbResult = dbConnection.createStatement().executeQuery("SELECT title, url, updatedDate FROM Feeds");
         while (dbResult.next()) {
             val title: String? = dbResult.getString("title");
-            val location: String? = dbResult.getString("location");
-            if (title != null && location != null) {
-                feeds.add(Feed(title, location));
+            val url: String? = dbResult.getString("url");
+            val date: String? = dbResult.getString("updatedDate");
+            if (title != null && url != null && date != null) {
+                feeds.add(Feed(title, url, date));
             }
             else {
-                println("ERROR accessing feed row ${dbResult.row}: title=$title, location=$location");
+                println("ERROR accessing feed row ${dbResult.row}: title=$title, ur=$url");
             }
         }
 

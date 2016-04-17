@@ -51,6 +51,7 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.18'
     compile 'com.google.code.gson:gson:2.6.2'
     compile 'org.postgresql:postgresql:9.4.1208.jre7'
+    compile 'rome:rome:1.0'
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 

@@ -15,17 +15,19 @@ outcastApp.directive('url', function() {
 });
 
 outcastApp.controller('MasterCtrl', function ($scope) {
-    $scope.toggleNewFeed = function() {
-        $("#newFeedDiv").toggle(true);
-    };
+
 });
 
-outcastApp.controller('NewFeedCtrl', function ($rootScope, $scope, $http, $timeout) {
-    $scope.feed = {title: '', location: ''};
+outcastApp.controller('NewFeedCtrl', function ($rootScope, $scope, $http) {
+    $scope.feed = '';
     $scope.submitNewFeed = function() {
-        if ($scope.feed.title && $scope.feed.location) {
-            $http.get("/feeds/add/title=" + $scope.feed.title + "+location=" + $scope.feed.location);
-            $timeout(function(){$rootScope.$emit("UpdateFeeds", {})}, 3000);
+        if ($scope.feed) {
+            $http.get("/feeds/add/location=" + $scope.feed)
+                .then(function successCallback(response) {
+                    $rootScope.$emit("UpdateFeeds", {});
+                }, function errorCallback(response) {
+                    console.error(response.data);
+                });
         }
     }
 });
@@ -34,7 +36,7 @@ outcastApp.controller('RssFeedCtrl', function ($rootScope, $scope, $http) {
     $rootScope.$on("UpdateFeeds", function() {
         getFeeds();
     });
-    $scope.feeds = [{title: "", location: ""}];
+    $scope.feeds = [{title: "", url: "", date: ""}];
 
     function getFeeds() {
         $http.get("/feeds").then(function successCallback(response) {
