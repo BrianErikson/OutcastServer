@@ -1,10 +1,13 @@
+
 import com.google.gson.Gson
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.syndication.feed.synd.SyndFeedImpl
 import com.sun.syndication.io.SyndFeedInput
 import com.sun.syndication.io.XmlReader
-import java.io.*
+import java.io.File
+import java.io.OutputStream
+import java.io.OutputStreamWriter
 import java.net.URI
 import java.net.URL
 import java.nio.file.Files
@@ -98,11 +101,18 @@ class Handler(val dbConnection: Connection): HttpHandler {
                 val rss = SyndFeedInput().build(XmlReader(URL(url))) as SyndFeedImpl;
                 val title: String = rss.title ?: throw RuntimeException("Could not find title for feed $url");
 
+                val statement = dbConnection.prepareStatement("UPDATE Feeds SET url=?, updateddate=now() WHERE title=?");
+                statement.setString(1, url);
+                statement.setString(2, title);
+                var result = statement.executeUpdate();
+                statement.close();
 
-                var result = dbConnection.createStatement().executeUpdate("UPDATE Feeds SET url='${escapeSqlString(url)}', updateddate=now() WHERE title='${escapeSqlString(title)}'");
                 if (result <= 0) {
-                    result = dbConnection.createStatement()
-                            .executeUpdate("INSERT INTO Feeds VALUES('${escapeSqlString(title)}', '${escapeSqlString(url)}')"); // 1 = OK
+                    val statement2 = dbConnection.prepareStatement("INSERT INTO Feeds VALUES(?, ?)");
+                    statement2.setString(1, title);
+                    statement2.setString(2, url);
+                    result = statement2.executeUpdate();
+                    statement2.close();
                 }
 
                 if (result <= 0) throw RuntimeException("Could not add $url to the database. Reason unknown.");
@@ -128,11 +138,8 @@ class Handler(val dbConnection: Connection): HttpHandler {
             val writer = OutputStreamWriter(out, Charsets.UTF_8);
             writer.write(json, 0, json.length);
             writer.close(); // closes out stream as well
+            println("Returned feeds to requester");
         }
-    }
-
-    private fun escapeSqlString(str: String): String {
-        return str.replace("'", "''");
     }
 
     private fun getDbFeeds(): String {
@@ -152,7 +159,6 @@ class Handler(val dbConnection: Connection): HttpHandler {
         }
 
         val json = Gson().toJson(feeds);
-        println(json);
         return json;
     }
 
